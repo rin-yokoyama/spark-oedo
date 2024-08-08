@@ -1,0 +1,6 @@
+/*
+!.gitignore
+!/map_files/
+!/procModules/
+!/srppac/
+*.pyc
