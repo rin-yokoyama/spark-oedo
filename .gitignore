@@ -1,5 +1,6 @@
 /*
 !.gitignore
+!setup.sh
 !/map_files/
 !/procModules/
 !/srppac/

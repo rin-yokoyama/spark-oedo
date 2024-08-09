@@ -51,11 +51,9 @@ def Map(spark: "SparkSession", dataFrame: "DataFrame", catName: "str") -> DataFr
     
     # Group by device_id and detector_id and collect the lists
     result_df = mapped_df.groupBy("event_id").agg(
-        collect_list("mapped_value").alias(catName + "_value"),
-        collect_list("id").alias(catName+"_id"),
-        collect_list("edge").alias(catName+"_edge")
+        collect_list("mapped_value").alias("value"),
+        collect_list("id").alias("id"),
+        collect_list("edge").alias("edge")
     )
 
-    # Join the result_df with the combined_df
-    #combined_df = combined_df.join(result_df, on=["event_id"], how='left').drop(result_df.event_id)
     return result_df

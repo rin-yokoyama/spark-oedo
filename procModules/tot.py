@@ -1,15 +1,14 @@
-from pyspark.sql import SparkSession
 from pyspark.sql.functions import explode, col, arrays_zip, collect_list, row_number, DataFrame
 from pyspark.sql.window import Window
 
-def Tot(dataFrame: "DataFrame", catName: "str") -> DataFrame:
+def Tot(dataFrame: "DataFrame") -> DataFrame:
     # Explode the lists
-    df_exploded = dataFrame.withColumn("zipped", arrays_zip(catName+"_value", catName+"_id", catName+"_edge")) \
+    df_exploded = dataFrame.withColumn("zipped", arrays_zip("value", "id", "edge")) \
                     .withColumn("exploded", explode("zipped")) \
                     .select("event_id", 
-                            col("exploded."+catName+"_value").alias("value"), 
-                            col("exploded."+catName+"_id").alias("id"), 
-                            col("exploded."+catName+"_edge").alias("edge"))
+                            col("exploded.value").alias("value"), 
+                            col("exploded.id").alias("id"), 
+                            col("exploded.edge").alias("edge"))
 
     # Separate DataFrames for edge=1 and edge=0
     df_edge_1 = df_exploded.filter(col("edge") == 1).select("event_id", "id", "value").alias("edge_1")
@@ -33,8 +32,8 @@ def Tot(dataFrame: "DataFrame", catName: "str") -> DataFrame:
     # Group by event_id and collect lists
     df_final = df_result.groupBy("event_id") \
                         .agg(
-                            collect_list("id").alias(catName+"_id"),
-                            collect_list("charge").alias(catName+"_charge"),
-                            collect_list("timing").alias(catName+"_timing")
+                            collect_list("id").alias("id"),
+                            collect_list("charge").alias("charge"),
+                            collect_list("timing").alias("timing")
                         )
     return df_final
