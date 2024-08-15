@@ -1,7 +1,7 @@
 from pyspark.sql import functions as F
 
 def Subtract(dataFrame: "F.DataFrame", dfSub: "F.DataFrame", id: int) -> F.DataFrame:
-    df_sub = dfSub.withColumn(
+    df_sub = F.broadcast(dfSub.withColumn(
         "value",
         F.expr("filter(value, (x, i) -> id[i] == {})".format(id))
     ).withColumn(
@@ -17,7 +17,7 @@ def Subtract(dataFrame: "F.DataFrame", dfSub: "F.DataFrame", id: int) -> F.DataF
     ).select(
         "event_id",
         F.col("exploded.value").alias("sub_value"), 
-    )
+    ))
 
     # Explode the lists
     df_result = dataFrame.withColumn("zipped", F.arrays_zip("value", "id", "edge")) \
@@ -34,4 +34,4 @@ def Subtract(dataFrame: "F.DataFrame", dfSub: "F.DataFrame", id: int) -> F.DataF
                         F.collect_list("new_value").alias("value"),
                         F.collect_list("orig_edge").alias("edge")
                     ) 
-    return df_result
+    return F.broadcast(df_result)

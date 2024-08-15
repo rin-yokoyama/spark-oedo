@@ -4,4 +4,5 @@
 !/map_files/
 !/procModules/
 !/srppac/
+!/prm
 *.pyc

@@ -1,4 +1,4 @@
-from pyspark.sql.functions import explode, col, arrays_zip, collect_list, DataFrame
+from pyspark.sql.functions import explode, col, arrays_zip, collect_list, DataFrame, broadcast
 
 def Validate(dataFrame: "DataFrame", valWindow: "list[2]") -> DataFrame:
     # Explode the lists
@@ -15,4 +15,4 @@ def Validate(dataFrame: "DataFrame", valWindow: "list[2]") -> DataFrame:
                         collect_list("id").alias("id"),
                         collect_list("edge").alias("edge")
                     )
-    return df_result
+    return broadcast(df_result)

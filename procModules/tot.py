@@ -1,4 +1,4 @@
-from pyspark.sql.functions import explode, col, arrays_zip, collect_list, row_number, DataFrame
+from pyspark.sql.functions import explode, col, arrays_zip, collect_list, row_number, DataFrame, broadcast
 from pyspark.sql.window import Window
 
 def Tot(dataFrame: "DataFrame") -> DataFrame:
@@ -11,8 +11,8 @@ def Tot(dataFrame: "DataFrame") -> DataFrame:
                             col("exploded.edge").alias("edge"))
 
     # Separate DataFrames for edge=1 and edge=0
-    df_edge_1 = df_exploded.filter(col("edge") == 1).select("event_id", "id", "value").alias("edge_1")
-    df_edge_0 = df_exploded.filter(col("edge") == 0).select("event_id", "id", "value").alias("edge_0")
+    df_edge_1 = broadcast(df_exploded.filter(col("edge") == 1).select("event_id", "id", "value").alias("edge_1"))
+    df_edge_0 = broadcast(df_exploded.filter(col("edge") == 0).select("event_id", "id", "value").alias("edge_0"))
 
     # Add row numbers to maintain order
     windowSpec = Window.partitionBy("event_id", "id").orderBy("value")
@@ -36,4 +36,4 @@ def Tot(dataFrame: "DataFrame") -> DataFrame:
                             collect_list("charge").alias("charge"),
                             collect_list("timing").alias("timing")
                         )
-    return df_final
+    return broadcast(df_final)

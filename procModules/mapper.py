@@ -1,7 +1,7 @@
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import explode, col, collect_list, DataFrame
+from pyspark.sql.functions import explode, col, collect_list, DataFrame, broadcast
 
-def Map(spark: "SparkSession", dataFrame: "DataFrame", catName: "str") -> DataFrame:
+def Map(spark: "SparkSession", dataFrame: "DataFrame", catName: "str", mapping_df: "DataFrame") -> DataFrame:
     """
     Returns a mapped dataframe.
 
@@ -26,7 +26,7 @@ def Map(spark: "SparkSession", dataFrame: "DataFrame", catName: "str") -> DataFr
     #combined_df = exploded_df.select("event_id").distinct()
 
     # Read the mapping file
-    mapping_df = spark.read.csv("./map_files/"+catName+".csv", header=True, inferSchema=True)
+    #mapping_df = broadcast(spark.read.csv("./map_files/"+catName+".csv", header=True, inferSchema=True))
     mapping_df = mapping_df.withColumn("id", col("id").cast("integer")) \
                            .withColumn("dev", col("dev").cast("integer")) \
                            .withColumn("fp", col("fp").cast("integer")) \
@@ -35,7 +35,7 @@ def Map(spark: "SparkSession", dataFrame: "DataFrame", catName: "str") -> DataFr
                            .withColumn("ch", col("ch").cast("integer")) \
    
     # Join with the mapping DataFrame to filter based on the criteria
-    joined_df = exploded_df.join(mapping_df, 
+    joined_df = exploded_df.join(broadcast(mapping_df), 
                                  (exploded_df.dev == mapping_df.dev) & 
                                  (exploded_df.fp == mapping_df.fp) & 
                                  (exploded_df.det == mapping_df.det) & 
