@@ -5,4 +5,5 @@
 !/procModules/
 !/srppac/
 !/prm
+!/detectorProcs/
 *.pyc

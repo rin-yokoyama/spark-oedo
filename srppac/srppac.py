@@ -1,14 +1,20 @@
 from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
-from procModules import tref, manipulation, mapper, validation, tot, calibrator
-from pyspark.sql import Window
+from procModules import tref, manipulation, mapper, tot, calibrator
+from detectorProcs import srppacPosDqdx
+import argparse
+
+parser = argparse.ArgumentParser()
+parser.add_argument("--full", help="output full time charge data", action="store_true")
+parser.add_argument("--require", help="required ppac name. Rows without this ppac column will be deleted")
+args = parser.parse_args()
 
 # Initialize Spark session
 spark = SparkSession.builder.appName("MapperOedo") \
         .getOrCreate()
 
 # Read the parquet file
-raw_df = spark.read.parquet("/home/ryokoyam/spark-oedo/rawdata/calib1029_short.parquet")
+raw_df = spark.read.parquet("/home/ryokoyam/spark-oedo/rawdata/calib1029.parquet")
 
 # Mapper list
 mapList = [
@@ -38,31 +44,70 @@ for cat in mapList:
     cat_name = cat["name"]
     mapping_dfs[cat_name] = spark.read.csv(f"./map_files/{cat_name}.csv", header=True, inferSchema=True).cache()
 
-# Read all charge calibration files into a dictionary
-ch2ns_dfs = spark.read.csv(f"./prm/srppac/ch2ns.csv", header=True, inferSchema=True).cache()
-#charge_cal_dfs = {}
-#for cat in mapList:
-#    cat_name = cat["name"]
-#    charge_cal_dfs[cat_name] = spark.read.csv(f"./prm/srppac/{cat_name}.csv", header=True, inferSchema=True).cache()
-
-
 # Map tref channels first
 tref_df = tref.Tref(spark, raw_df)
 
-srppac_df = raw_df.select("event_id")
-
+# Generate timecharge dataframes for each category
+time_charge_dfs = {}
 for cat in mapList:
     df = mapper.Map(spark, raw_df, cat["name"], mapping_dfs[cat["name"]])
     df = manipulation.Subtract(df,tref_df,cat["tref_id"]) # Tref subtraction
-    df = validation.Validate(df,[-100000,100000])
-    df = tot.Tot(df)
-    df = calibrator.ToFloat(df,"charge")
-    df = calibrator.ToFloat(df,"timing")
-    df = calibrator.linearCalib(df, ch2ns_dfs, "timing", "id")
+    df = manipulation.Validate(df,[-100000,100000])
+    if cat["name"][-1:] == "a":
+        df = tot.Tot(df,trailingComesFirst=False)
+    else:
+        df = tot.Tot(df,trailingComesFirst=True)
+    df = calibrator.ToFloat(df,"charge", 0, 0.09765627)
+    df = calibrator.ToFloat(df,"timing", 0, 0.09765627)
+    time_charge_dfs[cat["name"]] = df
 
-    # Add category name to the column names and join to the final output data frame
-    new_column_names = ["event_id", cat["name"] + "_id", cat["name"] + "_charge", cat["name"] + "_timing"]
-    df = F.broadcast(df.toDF(*new_column_names))
-    srppac_df = srppac_df.join(df, on=["event_id"],how="fullouter")
+# process for each ppac
+ppacList = ["sr91","sr92","src1","src2","sr11","sr12"]
+srppac_df = raw_df.select("event_id")
+for ppac in ppacList:
+    df_a = time_charge_dfs[ppac+"_a"]
+    df_x = time_charge_dfs[ppac+"_x"]
+    df_y = time_charge_dfs[ppac+"_y"]
+    pos_x = srppacPosDqdx.srppacPosDqdx(df_x,46.5,2.55,0,True)
+    pos_y = srppacPosDqdx.srppacPosDqdx(df_y,46.5,2.55,0,True)
+    pos_x = pos_x.select("event_id",F.col("pos").alias(ppac+"_x_pos"))
+    pos_y = pos_y.select("event_id",F.col("pos").alias(ppac+"_y_pos"))
+
+    # Fill event data into an array per event and add the ppac name to the column name
+    if args.full:
+        # Full output
+        df_a = df_a.groupBy("event_id").agg(
+            F.collect_list("timing").alias(ppac+"_a_timing"),
+            F.collect_list("charge").alias(ppac +"_a_charge")
+        )
+        df_x = df_x.groupBy("event_id").agg(
+            F.collect_list("id").alias(ppac+"_x_id"),
+            F.collect_list("timing").alias(ppac+"_x_timing"),
+            F.collect_list("charge").alias(ppac +"_x_charge")
+        )
+        df_x = df_x.join(pos_x, "event_id", "left")
+        df_y = df_y.groupBy("event_id").agg(
+            F.collect_list("id").alias(ppac+"_y_id"),
+            F.collect_list("timing").alias(ppac+"_y_timing"),
+            F.collect_list("charge").alias(ppac +"_y_charge")
+        )
+        df_y = df_y.join(pos_y, "event_id", "left")
+        # join to the final output data frame
+        srppac_df = srppac_df.join(df_a, on=["event_id"],how="fullouter")
+        srppac_df = srppac_df.join(df_x, on=["event_id"],how="fullouter")
+        srppac_df = srppac_df.join(df_y, on=["event_id"],how="fullouter")
+    else:
+        # Short output
+        df_a = df_a.groupBy("event_id").agg(
+            F.collect_list("timing").alias(ppac+"_a_timing"),
+            F.collect_list("charge").alias(ppac +"_a_charge")
+        )
+        pos_x = pos_x.filter(F.col(ppac+"_x_pos").isNotNull())
+        result_df = pos_x.join(pos_y, on=["event_id"], how="left")
+        result_df = result_df.join(df_a, on=["event_id"], how="left")
+        if ppac == args.require:
+            srppac_df = srppac_df.join(result_df, on=["event_id"], how="inner")
+        else:
+            srppac_df = srppac_df.join(result_df, on=["event_id"], how="fullouter")
  
-srppac_df.write.mode("overwrite").parquet("/home/ryokoyam/spark-oedo/rawdata/calib1029_short_srppac.parquet")
+srppac_df.write.mode("overwrite").parquet("/home/ryokoyam/spark-oedo/rawdata/calib1029_srppac.parquet")

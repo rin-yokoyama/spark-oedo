@@ -45,15 +45,8 @@ def Map(spark: "SparkSession", dataFrame: "DataFrame", catName: "str", mapping_d
     
     # Create the new columns mapped_value and mapped_id
     mapped_df = joined_df.select(col("event_id"),
-                                 col("value").alias("mapped_value"),
+                                 col("value"),
                                  col("id"),
                                  col("edge"))
-    
-    # Group by device_id and detector_id and collect the lists
-    result_df = mapped_df.groupBy("event_id").agg(
-        collect_list("mapped_value").alias("value"),
-        collect_list("id").alias("id"),
-        collect_list("edge").alias("edge")
-    )
 
-    return result_df
+    return mapped_df
