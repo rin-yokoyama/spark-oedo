@@ -6,4 +6,6 @@
 !/srppac/
 !/prm
 !/detectorProcs/
+!/kafka/
+!/streaming/
 *.pyc
