@@ -10,6 +10,7 @@ parser.add_argument("--require", help="required ppac name. Rows without this ppa
 args = parser.parse_args()
 
 def Process(spark: SparkSession, rawDF: F.DataFrame, full: bool, require: str) -> F.DataFrame:
+
     # Mapper list
     mapList = [
         {"name": "sr91_a","tref_id": 6},
@@ -57,7 +58,7 @@ def Process(spark: SparkSession, rawDF: F.DataFrame, full: bool, require: str) -
 
     # process for each ppac
     ppacList = ["sr91","sr92","src1","src2","sr11","sr12"]
-    srppac_df = rawDF.select("event_id")
+    srppac_df = rawDF.select("event_id").dropDuplicates(["event_id"])
     for ppac in ppacList:
         df_a = time_charge_dfs[ppac+"_a"]
         df_x = time_charge_dfs[ppac+"_x"]
@@ -79,17 +80,17 @@ def Process(spark: SparkSession, rawDF: F.DataFrame, full: bool, require: str) -
                 F.collect_list("timing").alias(ppac+"_x_timing"),
                 F.collect_list("charge").alias(ppac +"_x_charge")
             )
-            df_x = df_x.join(pos_x, "event_id", "left")
+            df_x = df_x.join(pos_x, ["event_id"], how="left")
             df_y = df_y.groupBy("event_id").agg(
                 F.collect_list("id").alias(ppac+"_y_id"),
                 F.collect_list("timing").alias(ppac+"_y_timing"),
                 F.collect_list("charge").alias(ppac +"_y_charge")
             )
-            df_y = df_y.join(pos_y, "event_id", "left")
+            df_y = df_y.join(pos_y, ["event_id"], how="left")
             # join to the final output data frame
-            srppac_df = srppac_df.join(df_a, on=["event_id"],how="fullouter")
-            srppac_df = srppac_df.join(df_x, on=["event_id"],how="fullouter")
-            srppac_df = srppac_df.join(df_y, on=["event_id"],how="fullouter")
+            srppac_df = srppac_df.join(df_a, on=["event_id"], how="fullouter")
+            srppac_df = srppac_df.join(df_x, on=["event_id"], how="fullouter")
+            srppac_df = srppac_df.join(df_y, on=["event_id"], how="fullouter")
         else:
             # Short output
             df_a = df_a.groupBy("event_id").agg(
@@ -97,13 +98,15 @@ def Process(spark: SparkSession, rawDF: F.DataFrame, full: bool, require: str) -
                 F.collect_list("charge").alias(ppac +"_a_charge")
             )
             pos_x = pos_x.filter(F.col(ppac+"_x_pos").isNotNull())
-            result_df = pos_x.join(pos_y, on=["event_id"], how="left")
-            result_df = result_df.join(df_a, on=["event_id"], how="left")
+            result_df = pos_x.join(pos_y, ["event_id"], how="left")
+            result_df = result_df.join(df_a, ["event_id"], how="left")
             if ppac == require:
-                srppac_df = srppac_df.join(result_df, on=["event_id"], how="inner")
+                srppac_df = srppac_df.join(result_df, ["event_id"], how="inner")
             else:
-                srppac_df = srppac_df.join(result_df, on=["event_id"], how="fullouter")
-    return srppac_df
+                srppac_df = srppac_df.join(result_df, ["event_id"], how="fullouter")
+            srppac_df = srppac_df
+
+        return srppac_df
  
 if __name__ == '__main__':
     # Initialize Spark session
@@ -111,6 +114,7 @@ if __name__ == '__main__':
             .getOrCreate()
 
     # Read the parquet file
-    raw_df = spark.read.parquet("/home/ryokoyam/spark-oedo/rawdata/calib1029.parquet")
-    srppac_df = Process(spark, raw_df, args.full, args.require)
-    srppac_df.write.mode("overwrite").parquet("/home/ryokoyam/spark-oedo/rawdata/calib1029_srppac.parquet")
+    raw_df = spark.read.parquet("/home/ryokoyam/spark-oedo/rawdata/calib1029_short.parquet")
+    exploded_df = mapper.ExplodeRawData(raw_df)
+    srppac_df = Process(spark, exploded_df, args.full, args.require)
+    srppac_df.write.mode("overwrite").parquet("/home/ryokoyam/spark-oedo/rawdata/calib1029_srppac_short2.parquet")

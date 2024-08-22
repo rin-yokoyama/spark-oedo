@@ -4,12 +4,19 @@ from pyspark.sql.window import Window
 def srppacPosDqdx(dataFrame: F.DataFrame, center: float, stripWidth: float, detOffset: float = 0, turned: bool = False):
     """
     Calculate position from SRPPAC raw data
+
+    Parameters
+    ----------
     dataFrame: input dataframe that contains event_id, id, charge, timing
     center: Center strip position
     stripWidth: strip width of the PPAC
     detOffset: Offset of the detector position (default: 0)
     turned: A flag for flipping the axis (default: False)
-    return: dataframe with two columns: event_id and position
+    isStreamin: A flag for streaming (required for watermarking)
+
+    Returns
+    -------
+    Dataframe with two columns: event_id and position
     """
     # Step 1: Identify c0, c1, id0, id1 for each event_id
     # Define a window partition by event_id and order by charge descending
@@ -31,9 +38,6 @@ def srppacPosDqdx(dataFrame: F.DataFrame, center: float, stripWidth: float, detO
         F.max("id0").alias("id0"),
         F.max("id1").alias("id1")
     )
-
-    # Join back with the original DataFrame on event_id
-    #df_joined = df.join(df_with_c0_c1, on="event_id")
 
     # Step 2: Implement the calculation for "pos"
     df_with_pos = df_with_c0_c1.withColumn(
