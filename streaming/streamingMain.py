@@ -137,14 +137,14 @@ hits_expanded = segdata_expanded.select(
 # Allow data up to 10 seconds late in Unix Timestamp
 with_watermark = hits_expanded.withWatermark(WATERMARK_TS_COL, WATERMARK_WINDOW)
 
-def process_batch(batch_df, batch_id):
+def process_batch(batch_df: F.DataFrame, batch_id: int):
     """
     This function processes each micro-batch of data as if it were a batch DataFrame.
     The processed data is then written to a Parquet file.
     """
     # Process the batch DataFrame using your existing function
     result_df = srppacMain.Process(spark, batch_df, full=True, require="sr91_x")
-    result_df = result_df.join(batch_df.select("event_id", WATERMARK_TS_COL), on=["event_id"], how="left")
+    result_df = result_df.join(batch_df.dropDuplicates(["event_id"]).select("event_id", "runnumber", WATERMARK_TS_COL), on=["event_id"], how="left")
 
     # Write the processed DataFrame to a Parquet file
     # You can customize the file path with batch_id or timestamp to avoid overwriting

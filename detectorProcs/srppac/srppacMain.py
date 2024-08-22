@@ -104,9 +104,8 @@ def Process(spark: SparkSession, rawDF: F.DataFrame, full: bool, require: str) -
                 srppac_df = srppac_df.join(result_df, ["event_id"], how="inner")
             else:
                 srppac_df = srppac_df.join(result_df, ["event_id"], how="fullouter")
-            srppac_df = srppac_df
 
-        return srppac_df
+    return srppac_df
  
 if __name__ == '__main__':
     # Initialize Spark session
