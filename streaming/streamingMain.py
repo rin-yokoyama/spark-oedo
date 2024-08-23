@@ -12,56 +12,6 @@ spark = SparkSession.builder \
     .appName("KafkaStructuredStreaming") \
     .getOrCreate()
 
-#starting_offsets = """
-#{
-#  "raw-arrow-data": {
-#    "0": 1133
-#  }
-#}
-#"""
-#
-## Define Kafka Source
-#first_df = spark.read \
-#    .format("kafka") \
-#    .option("kafka.bootstrap.servers", "shfs02:9092") \
-#    .option("subscribe", "raw-arrow-data") \
-#    .option("startingOffsets", starting_offsets) \
-#    .option("endingOffsets", "latest") \
-#    .load() \
-#    .limit(1)
-#
-#first_df = first_df.select(F.col("value").alias("arrow_data"))
-#
-## Function to convert PyArrow schema to PySpark schema
-#def arrow_to_spark_schema(arrow_schema):
-#    fields = []
-#    for field in arrow_schema:
-#        name = field.name
-#        arrow_type = field.type
-#        
-#        # Map Arrow types to PySpark types (extend as needed)
-#        if pa.types.is_int32(arrow_type) or pa.types.is_int64(arrow_type) or pa.types.is_uint64(arrow_type) or pa.types.is_uint32(arrow_type):
-#            spark_type = T.LongType()
-#        elif pa.types.is_float32(arrow_type) or pa.types.is_float64(arrow_type):
-#            spark_type = T.DoubleType()
-#        elif pa.types.is_string(arrow_type):
-#            spark_type = T.StringType()
-#        elif pa.types.is_list(arrow_type):
-#            spark_type = T.ArrayType(arrow_to_spark_schema(field.type.value_type))
-#        else:
-#            # Add more type mappings as needed
-#            raise TypeError(f"Unsupported Arrow type: {arrow_type}")
-#        
-#        fields.append(T.StructField(name, spark_type, True))
-#    
-#    return T.StructType(fields)
-#
-## Example function to read Arrow schema from the first message
-#def get_arrow_schema_from_message(binary_arrow):
-#    reader = pa.ipc.open_stream(binary_arrow)
-#    arrow_schema = reader.schema
-#    return arrow_to_spark_schema(arrow_schema)
-
 # Define a UDF to convert binary Arrow data to a list of Spark Row objects
 def arrow_to_spark(binary_arrow):
     if binary_arrow is None:
@@ -71,12 +21,7 @@ def arrow_to_spark(binary_arrow):
     row_data = {field: table.column(i).to_pylist()[0] for i, field in enumerate(table.schema.names)}
     return T.Row(**row_data)
 
-## Extract the schema from the first message
-#first_message = first_df.select("arrow_data").first()["arrow_data"]
-#spark_schema = get_arrow_schema_from_message(first_message)
-
 # Register the UDF without hardcoding the schema
-#arrow_udf = udf(arrow_to_spark)
 arrow_udf = udf(arrow_to_spark, rawdata.rawdata_schema)
 
 # Define Kafka Source

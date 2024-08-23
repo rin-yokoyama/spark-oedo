@@ -1,11 +1,12 @@
-from pyspark.sql.functions import DataFrame
+from pyspark.sql.functions import DataFrame, explode
 from pyspark.ml.feature import Bucketizer
 import matplotlib.pyplot as plt
 import numpy as np
 
 def Hist1D(dataFrame: DataFrame, colName: str, nbins: int, range: tuple[float, float]) -> plt:
     """
-    Plot 1D histogram of the column named "colName". Assuming the column stores a value per row
+    Plot 1D histogram of the column named "colName". Assuming the column stores a value per row.
+    Uses spark to count bin contents. pandasHist1d module could be faster for a short DataFrame
 
     Parameters
     ----------
@@ -55,3 +56,23 @@ def Hist1D(dataFrame: DataFrame, colName: str, nbins: int, range: tuple[float, f
     plt.title("Hist1D " + colName + " values")
 
     return plt
+
+def Hist1DArray(dataFrame: DataFrame, colName: str, nbins: int, range: tuple[float, float]) -> plt:
+    """
+    Plot 2D histogram of the column named colName["x", "y"]. Assuming the column stores an array that is aligned with each other
+
+    Parameters
+    ----------
+    dataFrame: Input DataFrame
+    colName: Column names to plot [x, y]
+    nbis: Number of bins [nbinsx, nbinsy]
+    range: Histogram range as [x[min, max], y[min, max]]
+
+    Returns
+    -------
+    2D histogram as matplotlib.pyplot.plt
+    """
+    dataFrame = dataFrame.select(colName)
+    exploded_df = dataFrame.select(explode(colName).alias(colName))
+
+    return Hist1D(exploded_df, colName, nbins, range)
