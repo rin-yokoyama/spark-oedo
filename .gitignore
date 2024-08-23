@@ -8,4 +8,6 @@
 !/detectorProcs/
 !/kafka/
 !/streaming/
+!/schema/
+!/hist/
 *.pyc
