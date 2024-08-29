@@ -34,9 +34,7 @@ for message in consumer:
     table = pa.Table.from_batches([batch])
 
     # Example of processing the data
-    #print(table)
     print(table.to_pandas())  # Convert to pandas DataFrame for easier manipulation
-    #tables.append(table.to_pandas())
 
 # Close the consumer when done
 consumer.close()

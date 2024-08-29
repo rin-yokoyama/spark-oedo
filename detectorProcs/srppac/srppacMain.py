@@ -1,13 +1,16 @@
 from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
-from procModules import tref, manipulation, mapper, tot, calibrator
+from procModules import tref, manipulation, mapper, tot, calibrator, constants
 from detectorProcs.srppac import srppacPosDqdx
 import argparse
 
 parser = argparse.ArgumentParser()
+parser.add_argument("--input", help="input file name", required=True)
 parser.add_argument("--full", help="output full time charge data", action="store_true")
 parser.add_argument("--require", help="required ppac name. Rows without this ppac column will be deleted")
 args = parser.parse_args()
+
+PPAC_NAMES = ["sr91","sr92","src1","src2","sr11","sr12"]
 
 def Process(spark: SparkSession, rawDF: F.DataFrame, full: bool, require: str) -> F.DataFrame:
 
@@ -37,7 +40,7 @@ def Process(spark: SparkSession, rawDF: F.DataFrame, full: bool, require: str) -
     mapping_dfs = {}
     for cat in mapList:
         cat_name = cat["name"]
-        mapping_dfs[cat_name] = spark.read.csv(f"./map_files/{cat_name}.csv", header=True, inferSchema=True).cache()
+        mapping_dfs[cat_name] = spark.read.csv("hdfs://"+constants.CLUSTER_NAME+":9000"+constants.MAPFILE_PATH+f"/{cat_name}.csv", header=True, inferSchema=True).cache()
 
     # Map tref channels first
     tref_df = tref.Tref(spark, rawDF)
@@ -57,7 +60,7 @@ def Process(spark: SparkSession, rawDF: F.DataFrame, full: bool, require: str) -
         time_charge_dfs[cat["name"]] = df
 
     # process for each ppac
-    ppacList = ["sr91","sr92","src1","src2","sr11","sr12"]
+    ppacList = PPAC_NAMES
     srppac_df = rawDF.select("event_id").dropDuplicates(["event_id"])
     for ppac in ppacList:
         df_a = time_charge_dfs[ppac+"_a"]
@@ -109,11 +112,25 @@ def Process(spark: SparkSession, rawDF: F.DataFrame, full: bool, require: str) -
  
 if __name__ == '__main__':
     # Initialize Spark session
-    spark = SparkSession.builder.appName("MapperOedo") \
+    spark = SparkSession.builder \
+            .master("spark://"+constants.CLUSTER_NAME+":7077") \
+            .appName("SRPPAC") \
+            .config("spark.driver.memory","20g") \
+            .config("spark.executor.memory","30g") \
             .getOrCreate()
 
     # Read the parquet file
-    raw_df = spark.read.parquet("/home/ryokoyam/spark-oedo/rawdata/calib1029_short.parquet")
+    raw_df = spark.read.parquet("hdfs://"+ constants.CLUSTER_NAME + ":9000"+constants.DATA_PATH+"/"+args.input+".parquet")
+
+    raw_df = raw_df.repartition(100)
     exploded_df = mapper.ExplodeRawData(raw_df)
     srppac_df = Process(spark, exploded_df, args.full, args.require)
-    srppac_df.write.mode("overwrite").parquet("/home/ryokoyam/spark-oedo/rawdata/calib1029_srppac_short2.parquet")
+    srppac_df.write.mode("overwrite").parquet("hdfs://"+constants.CLUSTER_NAME+":9000"+constants.DATA_PATH+"/"+args.input+f"_srppac.parquet")
+    # Process in smaller batches
+    #total_rows = raw_df.count()
+    #batch_size = constants.BATCH_SIZE
+    #for i in range(0, total_rows, batch_size):
+    #    df_batch = raw_df.limit(batch_size).offset(i)
+    #    exploded_df = mapper.ExplodeRawData(df_batch)
+    #    srppac_df = Process(spark, exploded_df, args.full, args.require)
+    #    srppac_df.write.mode("overwrite").parquet("hdfs://"+constants.CLUSTER_NAME+":9000"+constants.DATA_PATH+"/"+args.input+f"_srppac/batch_{i}.parquet")

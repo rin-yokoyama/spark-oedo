@@ -1,7 +1,5 @@
 from pyspark.sql.functions import DataFrame, explode
 import matplotlib.pyplot as plt
-import pandas as pd
-import numpy as np
 
 def Hist1D(dataFrame: DataFrame, colName: str, nbins: int, range: tuple[float, float]) -> plt:
     """

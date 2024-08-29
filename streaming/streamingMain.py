@@ -3,6 +3,7 @@ from pyspark.sql.functions import udf
 import pyspark.sql.functions as F
 import pyspark.sql.types as T
 from detectorProcs.srppac import srppacMain
+from procModules import constants
 import pyarrow as pa
 from schema import rawdata
 from streaming.streaminConstants import WATERMARK_TS_COL, WATERMARK_WINDOW

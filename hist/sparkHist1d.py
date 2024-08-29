@@ -19,58 +19,78 @@ def Hist1D(dataFrame: DataFrame, colName: str, nbins: int, range: tuple[float, f
     -------
     1D histogram as matplotlib.pyplot.plt
     """
-    # Step 1: Define bin edges (100 bins between -100 and 100)
+    # Define bin edges (n bins between -range[0] and range[1])
     bin_edges = np.linspace(range[0], range[1], num=nbins).tolist()
 
-    # Step 2: Create a Bucketizer
-    bucketizer = Bucketizer(splits=bin_edges, inputCol=colName, outputCol="bin")
+    # Add underflow and overflow bins to an extended list
+    ex_bin_edges = bin_edges.copy()
+    ex_bin_edges.append(np.inf)
+    ex_bin_edges.insert(0, -np.inf)
 
-    # Step 3: Apply the Bucketizer to the DataFrame
+    # Create a Bucketizer with the extended list of bins
+    bucketizer = Bucketizer(splits=ex_bin_edges, inputCol=colName, outputCol="bin")
+
+    # Apply the Bucketizer to the DataFrame
     binned_df = bucketizer.transform(dataFrame.select(colName))
 
-    # Step 4: Group by bin and count the occurrences in each bin and remove Null bins
+    # Group by bin and count the occurrences in each bin and remove Null bins
     histogram_df = binned_df.groupBy("bin").count().orderBy("bin")
     histogram_df = histogram_df.filter(histogram_df["bin"].isNotNull())
 
-    # Step 5: Collect the histogram data from Spark to local
+    # Collect the histogram data from Spark to local
     histogram_data = histogram_df.collect()
 
-    # Step 6: Calculate bin centers (optional, for a better x-axis representation)
-    bin_edges = np.linspace(range[0], range[1], num=nbins+1)
+    # Calculate bin centers
+    bin_edges = np.linspace(range[0], range[1], num=nbins)
     counts = np.zeros(len(bin_edges)-1)
 
-    # Step 7: Populate the counts array based on the histogram data
+    # Populate the counts array based on the histogram data
+    # Also, counts statistics for under/overflowed bins
+    underflow = 0
+    overflow = 0
+    inrange = 0
     for row in histogram_data:
         bin_index = int(row['bin'])  # Get the bin index
-        counts[bin_index] = row['count']  # Populate the count for the bin
+        if bin_index == 0: # The underflow bin
+            underflow = row['count']
+        if bin_index == nbins: # The overflow bin
+            overflow = row['count']
+        else:
+            counts[bin_index-1] = row['count']  # Populate the count for the bin
+            inrange = inrange + row['count']
 
-    # Step 8: Calculate bin centers
+    # Calculate bin centers
     bin_centers = 0.5 * (bin_edges[:-1] + bin_edges[1:])
+    bin_width = bin_centers[1] - bin_centers[0]
 
-    # Step 9: Plot the histogram
-    plt.bar(bin_centers, counts, width=bin_centers[1] - bin_centers[0])
+    # Plot the histogram
+    plt.bar(bin_centers, counts, width=bin_width)
 
     # Add labels and title
     plt.xlabel(colName)
     plt.ylabel("Frequency")
     plt.title("Hist1D " + colName + " values")
 
+    # Print statistics
+    print("Total entries: {}, Underflow: {}, Inside: {}, Overflow: {}".format(inrange+underflow+overflow, underflow, inrange, overflow))
+
     return plt
 
-def Hist1DArray(dataFrame: DataFrame, colName: str, nbins: int, range: tuple[float, float]) -> plt:
+def Hist1DArrays(dataFrame: DataFrame, colName: str, nbins: int, range: tuple[float, float]) -> plt:
     """
-    Plot 2D histogram of the column named colName["x", "y"]. Assuming the column stores an array that is aligned with each other
+    Plot 1D histogram of the column named colName.
+    The column stores an array of values.
 
     Parameters
     ----------
     dataFrame: Input DataFrame
-    colName: Column names to plot [x, y]
-    nbis: Number of bins [nbinsx, nbinsy]
-    range: Histogram range as [x[min, max], y[min, max]]
+    colName: Column name to plot
+    nbis: Number of bins
+    range: Histogram range as [min, max]
 
     Returns
     -------
-    2D histogram as matplotlib.pyplot.plt
+    1D histogram as matplotlib.pyplot.plt
     """
     dataFrame = dataFrame.select(colName)
     exploded_df = dataFrame.select(explode(colName).alias(colName))
