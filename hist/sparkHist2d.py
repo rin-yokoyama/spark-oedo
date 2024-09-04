@@ -4,7 +4,7 @@ from pyspark.sql.window import Window
 import matplotlib.pyplot as plt
 import numpy as np
 
-def Hist2D(dataFrame: DataFrame, colName: tuple[str, str], nbins: tuple[int, int], range: tuple[tuple[float, float], tuple[float, float]]) -> plt:
+def Hist2D(dataFrame: DataFrame, colName: tuple[str, str], nbins: tuple[int, int], range: tuple[tuple[float, float], tuple[float, float]], **kwargs) -> plt:
     """
     Plot 2D histogram of the column named colName["x", "y"]. Assuming the column stores a value per row
 
@@ -68,7 +68,7 @@ def Hist2D(dataFrame: DataFrame, colName: tuple[str, str], nbins: tuple[int, int
         statArray[idx,idy] = statArray[idx,idy] + row['count']
 
     # Plot the 2D histogram using a heatmap
-    plt.imshow(counts.T, extent=[range[0][0], range[0][1], range[1][0], range[1][1]], origin='lower', aspect='auto', cmap='viridis')
+    plt.imshow(counts.T, extent=[range[0][0], range[0][1], range[1][0], range[1][1]], origin='lower', aspect='auto', **kwargs)
 
     # Add labels and title
     plt.xlabel(colName[0])

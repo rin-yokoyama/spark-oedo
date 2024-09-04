@@ -3,7 +3,7 @@ from pyspark.ml.feature import Bucketizer
 import matplotlib.pyplot as plt
 import numpy as np
 
-def Hist1D(dataFrame: DataFrame, colName: str, nbins: int, range: tuple[float, float]) -> plt:
+def Hist1D(dataFrame: DataFrame, colName: str, nbins: int, range: tuple[float, float], **kwargs) -> plt:
     """
     Plot 1D histogram of the column named "colName". Assuming the column stores a value per row.
     Uses spark to count bin contents. pandasHist1d module could be faster for a short DataFrame
@@ -14,6 +14,10 @@ def Hist1D(dataFrame: DataFrame, colName: str, nbins: int, range: tuple[float, f
     colName: Column name to plot
     nbis: Number of bins
     range: Histogram range as [min, max]
+
+    Other parameters
+    ----------------
+    **kwargs: It will be passed to matplotlb bar() function
 
     Returns
     -------
@@ -64,7 +68,7 @@ def Hist1D(dataFrame: DataFrame, colName: str, nbins: int, range: tuple[float, f
     bin_width = bin_centers[1] - bin_centers[0]
 
     # Plot the histogram
-    plt.bar(bin_centers, counts, width=bin_width)
+    plt.bar(bin_centers, counts, width=bin_width, **kwargs)
 
     # Add labels and title
     plt.xlabel(colName)
