@@ -1,4 +1,4 @@
-from pyspark.sql.functions import DataFrame, posexplode, row_number
+from pyspark.sql.functions import DataFrame, posexplode, row_number, lit
 from pyspark.ml.feature import Bucketizer
 from pyspark.sql.window import Window
 import matplotlib.pyplot as plt
@@ -99,10 +99,10 @@ def Hist2DArrays(dataFrame: DataFrame, colName: tuple[str, str], nbins: tuple[in
     2D histogram as matplotlib.pyplot.plt
     """
     dataFrame = dataFrame.select(colName[0],colName[1])
-    windowSpec = Window.orderBy(colName[1])
+    windowSpec = Window.orderBy(lit(0))
     dataFrame = dataFrame.withColumn("row", row_number().over(windowSpec))
     exploded_pos_x_df = dataFrame.select(posexplode(colName[0]).alias("idx", colName[0]),"row")
     exploded_pos_y_df = dataFrame.select(posexplode(colName[1]).alias("idx", colName[1]),"row")
-    exploded_df = exploded_pos_x_df.join(exploded_pos_y_df, ["row", "idx"], "outer")
+    exploded_df = exploded_pos_x_df.join(exploded_pos_y_df, ["row", "idx"])
 
     return Hist2D(exploded_df, colName, nbins, range)
