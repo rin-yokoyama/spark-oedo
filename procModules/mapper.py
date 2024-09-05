@@ -1,5 +1,30 @@
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import explode, col, DataFrame, broadcast
+from procModules import constants
+from functools import reduce
+
+def ReadMapCSV(spark: SparkSession, fileName: str, detNames: list = []) -> DataFrame:
+    """
+    Read map csv files from a list of category names.
+    Lines starting with "#" will be skipped as comments.
+
+    Parameters
+    ----------
+    spark: SparkSession
+    fileName: File name of the mapping CSV.
+    detNames: List of detector names to load
+
+    Return
+    ------
+    Dict of category names and mapping DataFrames
+    """
+
+    df = spark.read.option("comment","#").csv(constants.MAPFILE_PATH+f"/{fileName}", header=True, inferSchema=True).cache()
+    if len(detNames)>0:
+        filter_condition = reduce(lambda cond, value: cond | col("cat").startswith(value), detNames, col("cat").startswith(detNames[0]))
+        df = df.filter(filter_condition)
+
+    return df 
 
 def ExplodeRawData(dataFrame: DataFrame) -> DataFrame:
     """
@@ -20,16 +45,15 @@ def ExplodeRawData(dataFrame: DataFrame) -> DataFrame:
     exploded_df = exploded_df.select("event_id", "dev", "fp", "det", "ex_hits.geo", "ex_hits.ch", "ex_hits.value", "ex_hits.edge")
     return exploded_df
 
-def Map(spark: "SparkSession", dataFrame: "DataFrame", catName: "str", mapping_df: "DataFrame") -> DataFrame:
+def Map(dataFrame: "DataFrame", mapping_df: "DataFrame", cols: list = ["event_id", "cat", "value", "id"]) -> DataFrame:
     """
     Returns a mapped dataframe.
 
     Parameters
     ----------
-    spark : spark session
     dataFrame : input dataframe (Call ExplodeRawData() before when you want to map raw data read from a parquet file.)
-    catName : Category name. It needs to match the map
-        file name, [catName].csv
+    mapping_df: DataFrame from the mapping CSV file.
+    cols: list of column names to keep in the output DataFrame.
 
     Returns
     -------
@@ -46,16 +70,9 @@ def Map(spark: "SparkSession", dataFrame: "DataFrame", catName: "str", mapping_d
                            .withColumn("geo", col("geo").cast("integer")) \
                            .withColumn("ch", col("ch").cast("integer")) \
    
-    # Join with the mapping DataFrame to filter based on the criteria
-    joined_df = dataFrame.join(broadcast(mapping_df), 
-                                 (dataFrame.dev == mapping_df.dev) & 
-                                 (dataFrame.fp == mapping_df.fp) & 
-                                 (dataFrame.det == mapping_df.det) & 
-                                 (dataFrame.geo == mapping_df.geo) & 
-                                 (dataFrame.ch == mapping_df.ch), 
-                                 "inner")
-    
+    joined_df = dataFrame.join(mapping_df, on=["dev","fp","det","geo","ch"], how="inner") 
+
     # Create the new columns mapped_value and mapped_id
-    mapped_df = joined_df.select("event_id","value","id","edge")
+    mapped_df = joined_df.select(cols)
 
     return mapped_df

@@ -1,0 +1,22 @@
+# [category_name],[id],[device],[focal_plane],[detector],[geometry],[channel]
+cat,id,dev,fp,det,geo,ch
+# F3 Dia V1290
+"dia3pad", 0,  11,   3,  31,   0,  6
+"dia3stripL", 0,  11,   3,  31,   0,   7
+"dia3stripL", 1,  11,   3,  31,   0,   2
+"dia3stripL", 2,  11,   3,  31,   0,   4
+"dia3stripL", 3,  11,   3,  31,   0,   9
+"dia3stripR", 0,  11,   3,  31,   0,   5
+"dia3stripR", 1,  11,   3,  31,   0,   1
+"dia3stripR", 2,  11,   3,  31,   0,   3
+"dia3stripR", 3,  11,   3,  31,   0,   8
+# S2 Dia V1290
+"dias2pad",   0,  11,   22,  31,   0,  10
+"dias2stripL",   0,  11,   22,  31,   0,   2
+"dias2stripL",   1,  11,   22,  31,   0,   3
+"dias2stripL",   2,  11,   22,  31,   0,   6
+"dias2stripL",   3,  11,   22,  31,   0,   8
+"dias2stripR",   0,  11,   22,  31,   0,   4
+"dias2stripR",   1,  11,   22,  31,   0,   5
+"dias2stripR",   2,  11,   22,  31,   0,   7
+"dias2stripR",   3,  11,   22,  31,   0,   9

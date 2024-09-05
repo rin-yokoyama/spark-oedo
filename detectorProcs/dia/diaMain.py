@@ -16,48 +16,27 @@ DETECTOR_NAMES = ["dia3"]
 
 def Process(spark: SparkSession, rawDF: F.DataFrame, full: bool, require: str) -> F.DataFrame:
 
-    # Mapper list
-    mapList = [
-        {"name": "dia3_pad","tref_id": 3},
-        {"name": "dia3_stripL","tref_id": 3},
-        {"name": "dia3_stripR","tref_id": 3}
-    ]
-    #mapList = [
-    #    {"name": "dia3_pad","tref_id": 3},
-    #    {"name": "dia3_stripL","tref_id": 3},
-    #    {"name": "dia3_stripR","tref_id": 3},
-    #    {"name": "dias2_pad","tref_id": 3},
-    #    {"name": "dias2_stripL","tref_id": 3},
-    #    {"name": "dias2_stripR","tref_id": 3}
-    #]
-
-    # Read all mapping files into a dictionary
-    mapping_dfs = {}
-    for cat in mapList:
-        cat_name = cat["name"]
-        mapping_dfs[cat_name] = spark.read.csv("hdfs://"+constants.CLUSTER_NAME+":9000"+constants.MAPFILE_PATH+f"/{cat_name}.csv", header=True, inferSchema=True).cache()
+    # Read mapping file and create a DataFrame
+    mapping_df = mapper.ReadMapCSV(spark, "dia1290.csv")
 
     # Map tref channels first
     tref_df = tref.Tref(spark, rawDF)
 
     # Generate timecharge dataframes for each category
-    time_charge_dfs = {}
-    for cat in mapList:
-        df = mapper.Map(spark, rawDF, cat["name"], mapping_dfs[cat["name"]])
-        df = manipulation.Subtract(df,tref_df,cat["tref_id"]) # Tref subtraction
-        #df = manipulation.Validate(df,[-100000,100000])
-        df = tot.Tot(df,trailingComesFirst=False)
-        df = calibrator.ToFloat(df,"charge", 0, 0.0244140625)
-        df = calibrator.ToFloat(df,"timing", 0, 0.0244140625)
-        time_charge_dfs[cat["name"]] = df
+    df = mapper.Map(rawDF, mapping_df, ["event_id", "cat", "value", "id", "edge", "dev", "fp", "det", "geo"])
+    df = tref.SubtractTref(df, tref_df)
+    df = manipulation.Validate(df,[-100000,100000])
+    df = tot.Tot(df)
+    df = calibrator.ToFloat(df,"charge", 0, 0.0244140625)
+    df = calibrator.ToFloat(df,"timing", 0, 0.0244140625)
 
     # process for each ppac
     detList = DETECTOR_NAMES
     detector_df = rawDF.select("event_id").dropDuplicates(["event_id"])
     for det in detList:
-        df_p = time_charge_dfs[det+"_pad"]
-        df_l = time_charge_dfs[det+"_stripL"]
-        df_r = time_charge_dfs[det+"_stripR"]
+        df_p = df.filter(F.col("cat") == det+"pad")
+        df_l = df.filter(F.col("cat") == det+"stripL")
+        df_r = df.filter(F.col("cat") == det+"stripR")
         df_s = twoSidedPlastic.twoSidedPlastic(df_l, df_r, det+"strip", [-100,100])
         
         # Aggrigate by events
@@ -104,11 +83,11 @@ if __name__ == '__main__':
             .getOrCreate()
 
     # Read the parquet file
-    raw_df = spark.read.parquet("hdfs://"+ constants.CLUSTER_NAME + ":9000"+constants.DATA_PATH+"/"+args.input+".parquet")
+    raw_df = spark.read.parquet(constants.DATA_PATH+"/"+args.input+".parquet")
 
     if args.partitions != None:
         raw_df = raw_df.repartition(args.partitions)
     exploded_df = mapper.ExplodeRawData(raw_df)
     detector_df = Process(spark, exploded_df, args.full, args.require)
-    detector_df.write.mode("overwrite").parquet("hdfs://"+constants.CLUSTER_NAME+":9000"+constants.DATA_PATH+"/"+args.input+f"_dia.parquet")
+    detector_df.write.mode("overwrite").parquet(constants.DATA_PATH+"/"+args.input+f"_dia.parquet")
     

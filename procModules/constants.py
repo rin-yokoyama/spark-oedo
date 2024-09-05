@@ -1,4 +1,9 @@
 CLUSTER_NAME = "shg01"
-DATA_PATH = "/test"
-MAPFILE_PATH = "/oedo/sh12/mapfiles"
+PORT = ":9000"
+DATA_PATH = "hdfs://" + CLUSTER_NAME+PORT + "/test"
+#DATA_PATH = "file://./test"
+MAPFILE_PATH = "hdfs://" + CLUSTER_NAME + PORT + "/oedo/sh13/mapfiles"
+#MAPFILE_PATH = "file://./map_files"
+PRMFILE_PATH = "hdfs://" + CLUSTER_NAME + PORT + "/oedo/sh13/prm"
+#MAPFILE_PATH = "file://./prm"
 BATCH_SIZE = 30000
