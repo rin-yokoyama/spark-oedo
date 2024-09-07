@@ -1,5 +1,6 @@
 from pyspark.sql import functions as F
 from pyspark.sql.window import Window
+from procModules import constants
 
 def twoSidedPlastic(dfL: F.DataFrame, dfR: F.DataFrame, detName: str, timeWindow: tuple[float, float]) -> F.DataFrame:
     """
@@ -17,7 +18,7 @@ def twoSidedPlastic(dfL: F.DataFrame, dfR: F.DataFrame, detName: str, timeWindow
     Dataframe with columns: event_id and 
     """
     # Join dfL and dfR on event_id
-    df_joined = dfL.alias("dfL").join(dfR.alias("dfR"), on=["event_id","id"], how="inner")
+    df_joined = dfL.alias("dfL").join(dfR.alias("dfR"), on=[constants.ID_COLNAME,"id"], how="inner")
 
     # Calculate the time difference
     df_with_diff = df_joined.withColumn("tdiff", F.col("dfL.timing") - F.col("dfR.timing")) \
@@ -31,7 +32,7 @@ def twoSidedPlastic(dfL: F.DataFrame, dfR: F.DataFrame, detName: str, timeWindow
     df_filtered = df_with_diff.filter((F.col("tdiff") >= timeWindow[0]) & (F.col("tdiff") <= timeWindow[1]))
 
     # Group by event_id and collect the time differences as an array
-    df_result = df_filtered.groupBy("event_id","id").agg(
+    df_result = df_filtered.groupBy(constants.ID_COLNAME,"id").agg(
                                 F.collect_list("tdiff").alias(detName + "_tdiff"),
                                 F.collect_list("tavg").alias(detName + "_tavg"),
                                 F.collect_list("qdiff").alias(detName + "_qdiff"),

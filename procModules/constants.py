@@ -7,3 +7,5 @@ MAPFILE_PATH = "hdfs://" + CLUSTER_NAME + PORT + "/oedo/sh13/mapfiles"
 PRMFILE_PATH = "hdfs://" + CLUSTER_NAME + PORT + "/oedo/sh13/prm"
 #MAPFILE_PATH = "file://./prm"
 BATCH_SIZE = 30000
+ID_COLNAME = "event_id"
+#ID_COLNAME = "ts"

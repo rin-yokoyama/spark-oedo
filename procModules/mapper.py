@@ -40,12 +40,12 @@ def ExplodeRawData(dataFrame: DataFrame) -> DataFrame:
     """
     # Explode the data column to get a flat structure
     exploded_df = dataFrame.withColumn("ex_segs", explode("segdata"))
-    exploded_df = exploded_df.select("event_id", "ex_segs.dev", "ex_segs.fp", "ex_segs.det", "ex_segs.hits")
+    exploded_df = exploded_df.select(constants.ID_COLNAME, "ex_segs.dev", "ex_segs.fp", "ex_segs.det", "ex_segs.hits")
     exploded_df = exploded_df.withColumn("ex_hits", explode("hits"))
-    exploded_df = exploded_df.select("event_id", "dev", "fp", "det", "ex_hits.geo", "ex_hits.ch", "ex_hits.value", "ex_hits.edge")
+    exploded_df = exploded_df.select(constants.ID_COLNAME, "dev", "fp", "det", "ex_hits.geo", "ex_hits.ch", "ex_hits.value", "ex_hits.edge")
     return exploded_df
 
-def Map(dataFrame: "DataFrame", mapping_df: "DataFrame", cols: list = ["event_id", "cat", "value", "id"]) -> DataFrame:
+def Map(dataFrame: "DataFrame", mapping_df: "DataFrame", cols: list = [constants.ID_COLNAME, "cat", "value", "id"]) -> DataFrame:
     """
     Returns a mapped dataframe.
 

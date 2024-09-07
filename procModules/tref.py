@@ -2,21 +2,34 @@ from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
 from procModules import mapper, constants
 
-def Tref(spark: "SparkSession", dataFrame: "F.DataFrame") -> F.DataFrame:
+def ReadCSV(spark: SparkSession) -> F.DataFrame:
+    """
+    Read tref.csv file
+    
+    Parameters
+    ----------
+    spark: SparkSession
+
+    Returns
+    -------
+    DataFrame from tref.csv
+    """
+    return mapper.ReadMapCSV(spark, "tref.csv")
+
+def Tref(dataFrame: "F.DataFrame", mapdf: F.DataFrame) -> F.DataFrame:
     """
     Generate a DataFrame from tref.csv
 
     Parameters
     ----------
-    spark: SparkSession
     dataFrame: Input raw DataFrame
+    mapdf: Tref map dataframe
 
     Returns
     -------
     DataFrame with Tref channels mapped.
     """
-    mapdf = mapper.ReadMapCSV(spark, "tref.csv")
-    df_tref = mapper.Map(dataFrame, mapdf, ["event_id","value","dev","fp","det","geo"]).filter("edge == 0")
+    df_tref = mapper.Map(dataFrame, mapdf, [constants.ID_COLNAME,"value","dev","fp","det","geo"]).filter("edge == 0")
     
     return df_tref
 
@@ -35,7 +48,7 @@ def SubtractTref(mappedDF: F.DataFrame, trefDF: F.DataFrame) -> F.DataFrame:
     """
 
     tref_df = trefDF.withColumnRenamed("value","tref_value")
-    df = mappedDF.join(tref_df, on=["event_id", "dev","fp","det","geo"], how="left") \
+    df = mappedDF.join(tref_df, on=[constants.ID_COLNAME, "dev","fp","det","geo"], how="left") \
            .withColumn("value", F.col("value") - F.col("tref_value")) \
            .drop("tref_value")
 

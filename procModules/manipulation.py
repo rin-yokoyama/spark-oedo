@@ -1,4 +1,5 @@
 from pyspark.sql import functions as F
+from procModules import constants
 
 def Validate(dataFrame: "F.DataFrame", valWindow: "list[2]") -> F.DataFrame:
 
@@ -14,16 +15,16 @@ def Subtract(dataFrame: "F.DataFrame", dfSub: "F.DataFrame", id: int) -> F.DataF
     id: id for the subtraction (tref id for the corresponding TDC module)
     return: dataframe with updated value
     """
-    df_sub = dfSub.select("event_id", F.col("id").alias("sub_id"), F.col("value").alias("sub_value")) \
+    df_sub = dfSub.select(constants.ID_COLNAME, F.col("id").alias("sub_id"), F.col("value").alias("sub_value")) \
                   .filter(F.col("sub_id") == id)
 
-    df_result = dataFrame.select("event_id", 
+    df_result = dataFrame.select(constants.ID_COLNAME, 
                             F.col("value").alias("orig_value"), 
                             F.col("id").alias("orig_id"), 
                             F.col("edge").alias("orig_edge")) \
-                    .join(df_sub, "event_id", "left") \
+                    .join(df_sub, constants.ID_COLNAME, "left") \
                     .withColumn("new_value", F.col("orig_value") - F.col("sub_value")) \
-                    .select("event_id",
+                    .select(constants.ID_COLNAME,
                             F.col("orig_id").alias("id"),
                             F.col("new_value").alias("value"),
                             F.col("orig_edge").alias("edge"))

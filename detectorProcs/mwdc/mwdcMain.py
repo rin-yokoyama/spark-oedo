@@ -11,60 +11,41 @@ parser.add_argument("--full", help="output full time charge data", action="store
 parser.add_argument("--require", help="required ppac name. Rows without this ppac column will be deleted")
 args = parser.parse_args()
 
-DETECTOR_NAMES = ["dia3"]
-#DETECTOR_NAMES = ["dia3","dias2"]
+DETECTOR_NAMES = ["dc31"]
 
-mapping_df = None
-tref_mapping_df = None
+def Process(spark: SparkSession, rawDF: F.DataFrame, full: bool, require: str) -> F.DataFrame:
 
-def LoadCSVFiles(spark: SparkSession):
-    """
-    Load CSV Files to DataFrames. This function should be called once before calling Process()
+    # Mapper list
+    mapList = [
+        {"name": "dia3_pad","tref_id": 3},
+        {"name": "dia3_stripL","tref_id": 3},
+        {"name": "dia3_stripR","tref_id": 3}
+    ]
 
-    Parameters
-    ----------
-    spark: SparkSession
-    """
-    global mapping_df, tref_mapping_df
-    if mapping_df is None:
-        mapping_df = mapper.ReadMapCSV(spark, "dia1290.csv", DETECTOR_NAMES)
-        tref_mapping_df = tref.ReadCSV(spark)
-
-def Process(rawDF: F.DataFrame, full: bool, require: str) -> F.DataFrame:
-    """
-    Main processor function for Diamond detector
-
-    Parameters
-    ----------
-    rawDF: Input rawdata DataFrame
-    full: Flag for full outputs
-    require: Only include rows with column "require" is not null
-
-    Returns
-    -------
-    Output DataFrame
-    """
-    if mapping_df is None:
-        print("Call LoadCSVFiles() before calling Process()")
+    # Read all mapping files into a dictionary
+    mapping_dfs = mapper.ReadMapCSV(spark, mapList)
 
     # Map tref channels first
-    tref_df = tref.Tref(rawDF, tref_mapping_df)
+    tref_df = tref.Tref(spark, rawDF)
 
     # Generate timecharge dataframes for each category
-    df = mapper.Map(rawDF, mapping_df, [constants.ID_COLNAME, "cat", "value", "id", "edge", "dev", "fp", "det", "geo"])
-    df = tref.SubtractTref(df, tref_df)
-    df = manipulation.Validate(df,[-100000,100000])
-    df = tot.Tot(df)
-    df = calibrator.ToFloat(df,"charge", 0, 0.0244140625)
-    df = calibrator.ToFloat(df,"timing", 0, 0.0244140625)
+    time_charge_dfs = {}
+    for cat in mapList:
+        df = mapper.Map(spark, rawDF, cat["name"], mapping_dfs[cat["name"]])
+        df = manipulation.Subtract(df,tref_df,cat["tref_id"]) # Tref subtraction
+        #df = manipulation.Validate(df,[-100000,100000])
+        df = tot.Tot(df,trailingComesFirst=False)
+        df = calibrator.ToFloat(df,"charge", 0, 0.0244140625)
+        df = calibrator.ToFloat(df,"timing", 0, 0.0244140625)
+        time_charge_dfs[cat["name"]] = df
 
     # process for each ppac
     detList = DETECTOR_NAMES
     detector_df = rawDF.select(constants.ID_COLNAME).dropDuplicates([constants.ID_COLNAME])
     for det in detList:
-        df_p = df.filter(F.col("cat") == det+"pad")
-        df_l = df.filter(F.col("cat") == det+"stripL")
-        df_r = df.filter(F.col("cat") == det+"stripR")
+        df_p = time_charge_dfs[det+"_pad"]
+        df_l = time_charge_dfs[det+"_stripL"]
+        df_r = time_charge_dfs[det+"_stripR"]
         df_s = twoSidedPlastic.twoSidedPlastic(df_l, df_r, det+"strip", [-100,100])
         
         # Aggrigate by events
@@ -111,12 +92,11 @@ if __name__ == '__main__':
             .getOrCreate()
 
     # Read the parquet file
-    raw_df = spark.read.parquet(constants.DATA_PATH+"/"+args.input+".parquet")
+    raw_df = spark.read.parquet("hdfs://"+ constants.CLUSTER_NAME + ":9000"+constants.DATA_PATH+"/"+args.input+".parquet")
 
     if args.partitions != None:
         raw_df = raw_df.repartition(args.partitions)
     exploded_df = mapper.ExplodeRawData(raw_df)
-    LoadCSVFiles(spark)
-    detector_df = Process(exploded_df, args.full, args.require)
-    detector_df.write.mode("overwrite").parquet(constants.DATA_PATH+"/"+args.input+f"_dia.parquet")
+    detector_df = Process(spark, exploded_df, args.full, args.require)
+    detector_df.write.mode("overwrite").parquet("hdfs://"+constants.CLUSTER_NAME+":9000"+constants.DATA_PATH+"/"+args.input+f"_dia.parquet")
     

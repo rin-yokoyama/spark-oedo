@@ -22,6 +22,8 @@ def arrow_to_spark(binary_arrow):
     row_data = {field: table.column(i).to_pylist()[0] for i, field in enumerate(table.schema.names)}
     return T.Row(**row_data)
 
+srppacMain.LoadCSVFiles(spark)
+
 # Register the UDF without hardcoding the schema
 arrow_udf = udf(arrow_to_spark, rawdata.rawdata_schema)
 
@@ -89,7 +91,7 @@ def process_batch(batch_df: F.DataFrame, batch_id: int):
     The processed data is then written to a Parquet file.
     """
     # Process the batch DataFrame using your existing function
-    result_df = srppacMain.Process(spark, batch_df, full=True, require="sr91_x")
+    result_df = srppacMain.Process(batch_df, full=True, require="sr91_x")
     result_df = result_df.join(batch_df.dropDuplicates(["event_id"]).select("event_id", "runnumber", WATERMARK_TS_COL), on=["event_id"], how="left")
 
     # Write the processed DataFrame to a Parquet file
