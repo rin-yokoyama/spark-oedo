@@ -30,7 +30,7 @@ def getConverterUDF(spark: SparkSession, fileName: str) -> Callable[[Column],Col
     y_csv = np.array(csv_df.select("y").collect())
     x_csv = np.ravel(x_csv)
     y_csv = np.ravel(y_csv)
-    interp_func = np.interp(x_csv, y_csv)
+    interp_func = lambda x: np.interp(x, x_csv, y_csv)
 
     # Step 3: Register the interpolation function as a pandas_udf
     @pandas_udf("double")  # UDF that returns double values (for yvalues)

@@ -73,8 +73,8 @@ def Process(rawDF: F.DataFrame, full: bool, require: str) -> F.DataFrame:
         df_a = df.filter(F.col("cat") == ppac+"a")
         df_x = df.filter(F.col("cat") == ppac+"x")
         df_y = df.filter(F.col("cat") == ppac+"y")
-        pos_x = srppacPosDqdx.srppacPosDqdx(df_x,udf_dict[ppac+"_xc0"],46.5,2.55,48,True)
-        pos_y = srppacPosDqdx.srppacPosDqdx(df_y,udf_dict[ppac+"_yc0"],28.5,2.58,49.28,True)
+        pos_x = srppacPosDqdx.srppacPosDqdx(df_x,udf_dict[ppac+"_xc0"],46.5,2.55,0,True)
+        pos_y = srppacPosDqdx.srppacPosDqdx(df_y,udf_dict[ppac+"_yc0"],28.5,2.58,0,True)
         pos_x = pos_x.select(constants.ID_COLNAME,F.col("pos").alias(ppac+"x_pos"))
         pos_y = pos_y.select(constants.ID_COLNAME,F.col("pos").alias(ppac+"y_pos"))
 
