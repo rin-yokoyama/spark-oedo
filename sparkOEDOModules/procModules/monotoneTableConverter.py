@@ -2,7 +2,6 @@ import pandas as pd
 import numpy as np
 from pyspark.sql import SparkSession, Column
 from pyspark.sql.functions import pandas_udf
-from scipy import interpolate
 from sparkOEDOModules.procModules import constants
 from typing import Callable
 
@@ -31,7 +30,7 @@ def getConverterUDF(spark: SparkSession, fileName: str) -> Callable[[Column],Col
     y_csv = np.array(csv_df.select("y").collect())
     x_csv = np.ravel(x_csv)
     y_csv = np.ravel(y_csv)
-    interp_func = interpolate.interp1d(x_csv, y_csv, kind='linear',fill_value="extrapolate")
+    interp_func = np.interp(x_csv, y_csv)
 
     # Step 3: Register the interpolation function as a pandas_udf
     @pandas_udf("double")  # UDF that returns double values (for yvalues)

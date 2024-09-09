@@ -103,12 +103,15 @@ def Process(rawDF: F.DataFrame, full: bool, require: str) -> F.DataFrame:
  
 if __name__ == '__main__':
     # Initialize Spark session
-    spark = SparkSession.builder \
-            .master("spark://"+constants.CLUSTER_NAME+":7077") \
-            .appName("DIA") \
-            .config("spark.driver.memory","8g") \
-            .config("spark.executor.memory","8g") \
-            .getOrCreate()
+    if constants.SERVER_TYPE == "aws":
+        spark = SparkSession.builder.getOrCreate()
+    else:
+        spark = SparkSession.builder \
+                .master(constants.MASTER) \
+                .appName("DIA") \
+                .config("spark.driver.memory","8g") \
+                .config("spark.executor.memory","8g") \
+                .getOrCreate()
 
     # Read the parquet file
     raw_df = spark.read.parquet(constants.DATA_PATH+"/"+args.input+".parquet")

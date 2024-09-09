@@ -31,8 +31,8 @@ def LoadCSVFiles(spark: SparkSession):
         mapping_df = mapper.ReadMapCSV(spark, "srppac.csv", DETECTOR_NAMES)
         tref_mapping_df = tref.ReadCSV(spark)
         for det in DETECTOR_NAMES:
-            udf_dict[det+"_xc0"] = monotoneTableConverter.getConverterUDF(spark,det+"_xc0.csv")
-            udf_dict[det+"_yc0"] = monotoneTableConverter.getConverterUDF(spark,det+"_yc0.csv")
+            udf_dict[det+"_xc0"] = monotoneTableConverter.getConverterUDF(spark,"srppac/"+det+"_xc0.csv")
+            udf_dict[det+"_yc0"] = monotoneTableConverter.getConverterUDF(spark,"srppac/"+det+"_yc0.csv")
 
 def Process(rawDF: F.DataFrame, full: bool, require: str) -> F.DataFrame:
     """
@@ -119,13 +119,15 @@ def Process(rawDF: F.DataFrame, full: bool, require: str) -> F.DataFrame:
  
 if __name__ == '__main__':
     # Initialize Spark session
-            #.master("spark://"+constants.CLUSTER_NAME+":7077") \
-    spark = SparkSession.builder \
-            .master("local[*]") \
-            .appName("SRPPAC") \
-            .config("spark.driver.memory","20g") \
-            .config("spark.executor.memory","20g") \
-            .getOrCreate()
+    if constants.SERVER_TYPE == "aws":
+        spark = SparkSession.builder.getOrCreate()
+    else:
+        spark = SparkSession.builder \
+                .master(constants.MASTER) \
+                .appName("SRPPAC") \
+                .config("spark.driver.memory","20g") \
+                .config("spark.executor.memory","20g") \
+                .getOrCreate()
 
     # Read the parquet file
     raw_df = spark.read.parquet(constants.DATA_PATH+"/"+args.input+".parquet")
