@@ -1,0 +1,6 @@
+pyspark
+pyarrow
+numpy
+scipy
+matplotlib
+pandas
