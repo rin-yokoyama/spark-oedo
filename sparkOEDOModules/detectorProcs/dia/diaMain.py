@@ -1,7 +1,7 @@
 from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
-from procModules import tref, manipulation, mapper, tot, calibrator, constants
-from detectorProcs.dia import twoSidedPlastic
+from sparkOEDOModules.procModules import tref, manipulation, mapper, tot, calibrator, constants
+from sparkOEDOModules.detectorProcs.dia import twoSidedPlastic
 import argparse
 
 parser = argparse.ArgumentParser()

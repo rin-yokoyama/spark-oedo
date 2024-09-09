@@ -1,6 +1,6 @@
 from pyspark.sql.functions import col, when, row_number, DataFrame, broadcast
 from pyspark.sql.window import Window
-from procModules import constants
+from sparkOEDOModules.procModules import constants
 
 def Tot(dataFrame: "DataFrame") -> DataFrame:
     """

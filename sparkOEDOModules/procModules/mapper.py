@@ -1,6 +1,6 @@
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import explode, col, DataFrame, broadcast
-from procModules import constants
+from sparkOEDOModules.procModules import constants
 from functools import reduce
 
 def ReadMapCSV(spark: SparkSession, fileName: str, detNames: list = []) -> DataFrame:

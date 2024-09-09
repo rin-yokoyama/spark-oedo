@@ -1,6 +1,6 @@
 from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
-from procModules import mapper, constants
+from sparkOEDOModules.procModules import mapper, constants
 
 def ReadCSV(spark: SparkSession) -> F.DataFrame:
     """

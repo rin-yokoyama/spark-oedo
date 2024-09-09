@@ -4,12 +4,9 @@
 !__init__.py
 !requirements.txt
 !/map_files/
-!/procModules/
-!/srppac/
+!/sparkOEDOModules/
+!sparkOEDOModules.zip
 !/prm
-!/detectorProcs/
 !/kafka/
-!/streaming/
-!/schema/
 !/hist/
 *.pyc

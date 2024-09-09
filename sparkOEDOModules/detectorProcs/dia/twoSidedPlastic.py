@@ -1,6 +1,6 @@
 from pyspark.sql import functions as F
 from pyspark.sql.window import Window
-from procModules import constants
+from sparkOEDOModules.procModules import constants
 
 def twoSidedPlastic(dfL: F.DataFrame, dfR: F.DataFrame, detName: str, timeWindow: tuple[float, float]) -> F.DataFrame:
     """

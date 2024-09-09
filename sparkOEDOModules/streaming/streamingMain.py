@@ -2,11 +2,11 @@ from pyspark.sql import SparkSession
 from pyspark.sql.functions import udf
 import pyspark.sql.functions as F
 import pyspark.sql.types as T
-from detectorProcs.srppac import srppacMain
-from procModules import constants
+from sparkOEDOModules.detectorProcs.srppac import srppacMain
+from sparkOEDOModules.procModules import constants
 import pyarrow as pa
-from schema import rawdata
-from streaming.streaminConstants import WATERMARK_TS_COL, WATERMARK_WINDOW
+from sparkOEDOModules.schema import rawdata
+from sparkOEDOModules.streaming.streaminConstants import WATERMARK_TS_COL, WATERMARK_WINDOW
 
 # Create Spark Session
 spark = SparkSession.builder \

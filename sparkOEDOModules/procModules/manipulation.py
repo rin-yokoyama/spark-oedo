@@ -1,5 +1,5 @@
 from pyspark.sql import functions as F
-from procModules import constants
+from sparkOEDOModules.procModules import constants
 
 def Validate(dataFrame: "F.DataFrame", valWindow: "list[2]") -> F.DataFrame:
 

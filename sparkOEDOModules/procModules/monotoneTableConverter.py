@@ -3,7 +3,7 @@ import numpy as np
 from pyspark.sql import SparkSession, Column
 from pyspark.sql.functions import pandas_udf
 from scipy import interpolate
-from procModules import constants
+from sparkOEDOModules.procModules import constants
 from typing import Callable
 
 def getConverterUDF(spark: SparkSession, fileName: str) -> Callable[[Column],Column]:
