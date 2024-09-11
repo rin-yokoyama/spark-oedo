@@ -1,4 +1,4 @@
-from pyspark.sql import SparkSession
+from pyspark.sql import SparkSession, DataFrame
 from pyspark.sql import functions as F
 from sparkOEDOModules.procModules import tref, manipulation, mapper, tot, calibrator, constants, monotoneTableConverter
 from sparkOEDOModules.detectorProcs.srppac import srppacPosDqdx
@@ -34,7 +34,7 @@ def LoadCSVFiles(spark: SparkSession):
             udf_dict[det+"_xc0"] = monotoneTableConverter.getConverterUDF(spark,"srppac/"+det+"_xc0.csv")
             udf_dict[det+"_yc0"] = monotoneTableConverter.getConverterUDF(spark,"srppac/"+det+"_yc0.csv")
 
-def Process(rawDF: F.DataFrame, full: bool, require: str) -> F.DataFrame:
+def Process(rawDF: DataFrame, full: bool, require: str) -> DataFrame:
     """
     Main processor function for SRPPAC detectors
 

@@ -1,4 +1,4 @@
-from pyspark.sql import SparkSession
+from pyspark.sql import SparkSession, DataFrame
 from pyspark.sql import functions as F
 from sparkOEDOModules.procModules import tref, manipulation, mapper, tot, calibrator, constants
 import argparse
@@ -25,7 +25,7 @@ def LoadCSVFiles(spark: SparkSession):
         mapping_df = mapper.ReadMapCSV(spark, "trig.csv", "trig")
         tref_mapping_df = tref.ReadCSV(spark)
 
-def Process(rawDF: F.DataFrame, full: bool) -> F.DataFrame:
+def Process(rawDF: DataFrame, full: bool) -> DataFrame:
     """
     Main processor function for trigger selection
 

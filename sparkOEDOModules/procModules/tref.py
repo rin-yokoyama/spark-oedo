@@ -1,8 +1,8 @@
-from pyspark.sql import SparkSession
+from pyspark.sql import SparkSession, DataFrame
 from pyspark.sql import functions as F
 from sparkOEDOModules.procModules import mapper, constants
 
-def ReadCSV(spark: SparkSession) -> F.DataFrame:
+def ReadCSV(spark: SparkSession) -> DataFrame:
     """
     Read tref.csv file
     
@@ -16,7 +16,7 @@ def ReadCSV(spark: SparkSession) -> F.DataFrame:
     """
     return mapper.ReadMapCSV(spark, "tref.csv")
 
-def Tref(dataFrame: "F.DataFrame", mapdf: F.DataFrame) -> F.DataFrame:
+def Tref(dataFrame: "DataFrame", mapdf: DataFrame) -> DataFrame:
     """
     Generate a DataFrame from tref.csv
 
@@ -33,7 +33,7 @@ def Tref(dataFrame: "F.DataFrame", mapdf: F.DataFrame) -> F.DataFrame:
     
     return df_tref
 
-def SubtractTref(mappedDF: F.DataFrame, trefDF: F.DataFrame) -> F.DataFrame:
+def SubtractTref(mappedDF: DataFrame, trefDF: DataFrame) -> DataFrame:
     """
     Subtract tref value from "value" column in the imput DataFrame
 

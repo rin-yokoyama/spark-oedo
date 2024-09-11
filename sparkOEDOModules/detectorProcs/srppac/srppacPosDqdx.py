@@ -1,10 +1,10 @@
 from pyspark.sql import functions as F
-from pyspark.sql import Column
+from pyspark.sql import Column, DataFrame
 from typing import Callable
 from pyspark.sql.window import Window
 from sparkOEDOModules.procModules import constants
 
-def srppacPosDqdx(dataFrame: F.DataFrame, c0UDF: Callable[[Column],Column], center: float, stripWidth: float, detOffset: float = 0, turned: bool = False):
+def srppacPosDqdx(dataFrame: DataFrame, c0UDF: Callable[[Column],Column], center: float, stripWidth: float, detOffset: float = 0, turned: bool = False):
     """
     Calculate position from SRPPAC raw data
 

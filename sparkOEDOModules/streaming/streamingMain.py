@@ -1,4 +1,4 @@
-from pyspark.sql import SparkSession
+from pyspark.sql import SparkSession, DataFrame
 from pyspark.sql.functions import udf
 import pyspark.sql.functions as F
 import pyspark.sql.types as T
@@ -85,7 +85,7 @@ hits_expanded = segdata_expanded.select(
 # Allow data up to 10 seconds late in Unix Timestamp
 with_watermark = hits_expanded.withWatermark(WATERMARK_TS_COL, WATERMARK_WINDOW)
 
-def process_batch(batch_df: F.DataFrame, batch_id: int):
+def process_batch(batch_df: DataFrame, batch_id: int):
     """
     This function processes each micro-batch of data as if it were a batch DataFrame.
     The processed data is then written to a Parquet file.

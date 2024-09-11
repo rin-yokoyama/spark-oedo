@@ -1,12 +1,13 @@
 from pyspark.sql import functions as F
+from pyspark.sql import DataFrame
 from sparkOEDOModules.procModules import constants
 
-def Validate(dataFrame: "F.DataFrame", valWindow: "list[2]") -> F.DataFrame:
+def Validate(dataFrame: "DataFrame", valWindow: "list[2]") -> DataFrame:
 
     df_result = dataFrame.filter((F.col("value") > valWindow[0]) & (F.col("value") < valWindow[1]))
     return df_result
 
-def Subtract(dataFrame: "F.DataFrame", dfSub: "F.DataFrame", id: int) -> F.DataFrame:
+def Subtract(dataFrame: "DataFrame", dfSub: "DataFrame", id: int) -> DataFrame:
     """
     Subtracts the value with id==id in the dfSub dataframe from the value column in the dataFrame
     This is primary for tref subtraction

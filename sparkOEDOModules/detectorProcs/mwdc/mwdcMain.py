@@ -1,4 +1,4 @@
-from pyspark.sql import SparkSession
+from pyspark.sql import SparkSession, DataFrame
 from pyspark.sql import functions as F
 from sparkOEDOModules.procModules import tref, manipulation, mapper, tot, calibrator, constants
 from sparkOEDOModules.detectorProcs.dia import twoSidedPlastic
@@ -13,7 +13,7 @@ args = parser.parse_args()
 
 DETECTOR_NAMES = ["dc31"]
 
-def Process(spark: SparkSession, rawDF: F.DataFrame, full: bool, require: str) -> F.DataFrame:
+def Process(spark: SparkSession, rawDF: DataFrame, full: bool, require: str) -> DataFrame:
 
     # Mapper list
     mapList = [
