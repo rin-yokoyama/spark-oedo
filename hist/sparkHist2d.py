@@ -4,7 +4,7 @@ from pyspark.sql.window import Window
 import matplotlib.pyplot as plt
 import numpy as np
 
-def Hist2D(dataFrame: DataFrame, colName: tuple[str, str], nbins: tuple[int, int], range: tuple[tuple[float, float], tuple[float, float]], **kwargs) -> plt:
+def Hist2D(dataFrame: DataFrame, colName: tuple[str, str], nbins: tuple[int, int], range: tuple[tuple[float, float], tuple[float, float]], **kwargs) -> np.ndarray:
     """
     Plot 2D histogram of the column named colName["x", "y"]. Assuming the column stores a value per row
 
@@ -81,9 +81,9 @@ def Hist2D(dataFrame: DataFrame, colName: tuple[str, str], nbins: tuple[int, int
     # Print statistics
     print("Statistics:")
     print(statArray)
-    return plt
+    return counts
 
-def Hist2DArrays(dataFrame: DataFrame, colName: tuple[str, str], nbins: tuple[int, int], range: tuple[tuple[float, float], tuple[float, float]]) -> plt:
+def Hist2DArrays(dataFrame: DataFrame, colName: tuple[str, str], nbins: tuple[int, int], range: tuple[tuple[float, float], tuple[float, float]]) -> np.ndarray:
     """
     Plot 2D histogram of the column named colName["x", "y"]. Assuming the column stores an array that is aligned with each other
 
